@@ -1,0 +1,16 @@
+# visual studio
+obj/
+[Bb]in
+[Dd]ebug*/
+[Rr]elease*/
+*.sln.cache
+*.suo
+*.user
+*.vspscc
+*.vssscc
+*.cache
+*.bak
+*.log
+.vs/*
+coverage.json
+coverage.hits
