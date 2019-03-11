@@ -6,10 +6,13 @@ namespace VendingMachine.Models
 	{
 		public PurchaseResponse(IEnumerable<Coin> change, IEnumerable<Product> products)
 		{
-			Message = "Thank you";
+			Success = change != null;
+			Message = Success ? "Thank you" : "Insufficient change";
 			Change = change;
 			Products = products;
 		}
+
+		public bool Success { get; set; }
 
 		public string Message { get; set; }
 

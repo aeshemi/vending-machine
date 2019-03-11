@@ -75,6 +75,25 @@ namespace VendingMachine.Tests.Controllers
 		}
 
 		[Fact]
+		public void InvalidPurchase_InsufficientChange_ReturnsMessageNullAndInventory()
+		{
+			mockProductService.Setup(x => x.Purchase(It.IsAny<ProductType>(), It.IsAny<List<Coin>>())).Returns((IEnumerable<Coin>) null);
+
+			var result = productsController.Purchase(request).AssertOkObjectResult().Model<PurchaseResponse>();
+
+			result.Should().NotBeNull();
+			result.Message.Should().Be("Insufficient change");
+
+			result.Change.Should().BeNull();
+
+			result.Products.Should().NotBeEmpty()
+				.And.HaveCount(4)
+				.And.OnlyHaveUniqueItems(x => x.ProductType)
+				.And.Equal(TestData.Products, (x, y) =>
+					x.ProductType == y.ProductType && x.Description == y.Description && x.Price == y.Price && x.Quantity == y.Quantity);
+		}
+
+		[Fact]
 		public void InvalidPurchase_ProductOutOfStock_ReturnsBadRequest()
 		{
 			const string expected = "Product is out of stock";

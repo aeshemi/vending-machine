@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Moq;
@@ -67,6 +68,19 @@ namespace VendingMachine.Tests.Services
 			}
 		}
 
+		[Theory]
+		[InlineData(.20)]
+		[InlineData(1.50)]
+		[InlineData(2.70)]
+		public void DistributeChange_ReturnsInsufficientChange_IfChangeIsNotEnough(decimal amount)
+		{
+			var mockCoinsService = SetupMockCoinsService(true);
+
+			mockCoinsService.Invoking(x => x.DistributeChange(amount))
+				.Should().Throw<ArgumentException>()
+				.WithMessage("Insufficient change");
+		}
+
 		public static readonly object[][] DistributeChangeData =
 		{
 			new object[] { .70M, new List<Coin> { new Coin(CoinType.FiftyCent, 1, "50 cent"), new Coin(CoinType.TwentyCent, 1, "20 cent") } },
@@ -95,9 +109,20 @@ namespace VendingMachine.Tests.Services
 		[Theory, MemberData(nameof(DistributeChangeEmptyCoinsData))]
 		public void DistributeChange_ShouldSkipEmptyCoins(decimal amount, List<Coin> expected)
 		{
+			var mockCoinsService = SetupMockCoinsService();
+
+			mockCoinsService.DistributeChange(amount)
+				.Should().NotBeNull()
+				.And.HaveCount(expected.Count)
+				.And.OnlyHaveUniqueItems(x => x.CoinType)
+				.And.Equal(expected, (x, y) => x.CoinType == y.CoinType && x.Description == y.Description && x.Quantity == y.Quantity);
+		}
+
+		private CoinsService SetupMockCoinsService(bool singleTenCent = false)
+		{
 			var emptyCoins = new Dictionary<CoinType, CoinDetail>
 			{
-				{ CoinType.TenCent, new CoinDetail { CoinType = CoinType.TenCent, Description = "10 cent", Value = 0.10M, Quantity = 10 } },
+				{ CoinType.TenCent, new CoinDetail { CoinType = CoinType.TenCent, Description = "10 cent", Value = 0.10M, Quantity = singleTenCent ? 1 : 10 } },
 				{ CoinType.TwentyCent, new CoinDetail { CoinType = CoinType.TwentyCent, Value = 0.20M } },
 				{ CoinType.FiftyCent, new CoinDetail { CoinType = CoinType.FiftyCent, Value = 0.50M } },
 				{ CoinType.OneEuro, new CoinDetail { CoinType = CoinType.OneEuro, Description = "1 euro", Value = 1, Quantity = 10 } }
@@ -108,13 +133,7 @@ namespace VendingMachine.Tests.Services
 			mockCoinRepository.Setup(x => x.List()).Returns(emptyCoins.Values);
 			mockCoinRepository.Setup(x => x.Get(It.IsAny<CoinType>())).Returns((CoinType x) => emptyCoins[x]);
 
-			var mockCoinsService = new CoinsService(mockCoinRepository.Object);
-
-			mockCoinsService.DistributeChange(amount)
-				.Should().NotBeNull()
-				.And.HaveCount(expected.Count)
-				.And.OnlyHaveUniqueItems(x => x.CoinType)
-				.And.Equal(expected, (x, y) => x.CoinType == y.CoinType && x.Description == y.Description && x.Quantity == y.Quantity);
+			return new CoinsService(mockCoinRepository.Object);
 		}
 	}
 }

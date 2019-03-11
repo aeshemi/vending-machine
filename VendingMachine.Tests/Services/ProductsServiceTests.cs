@@ -28,6 +28,7 @@ namespace VendingMachine.Tests.Services
 		{
 			MockCoinsService = new Mock<ICoinsService>();
 			MockCoinsService.Setup(x => x.GetValue(It.IsAny<CoinType>())).Returns((CoinType x) => coinTypeValues[x]);
+			MockCoinsService.Setup(x => x.DistributeChange(0.1M)).Throws<ArgumentException>();
 
 			ProductRepository = new ProductRepository(fixture.Context);
 			ProductsService = new ProductsService(ProductRepository, MockCoinsService.Object);
@@ -135,6 +136,23 @@ namespace VendingMachine.Tests.Services
 				mockCoinsService.Verify(x => x.DistributeChange(It.IsAny<decimal>()), Times.Never);
 
 			productRepository.Get(productType).Quantity.Should().Be(--productQuantity);
+		}
+
+		[Fact]
+		public void Purchase_ReturnsNull_IfInsufficientChange()
+		{
+			const ProductType productType = ProductType.Tea;
+			var coins = new List<Coin> { new Coin(CoinType.OneEuro, 1), new Coin(CoinType.TwentyCent, 2) };
+
+			var productQuantity = productRepository.Get(productType).Quantity;
+
+			productsService.Purchase(productType, coins)
+				.Should().BeNull();
+
+			mockCoinsService.Verify(x => x.UpdateCoinQuantities(coins), Times.Once);
+			mockCoinsService.Verify(x => x.DistributeChange(0.1M), Times.Once);
+
+			productRepository.Get(productType).Quantity.Should().Be(productQuantity);
 		}
 	}
 }

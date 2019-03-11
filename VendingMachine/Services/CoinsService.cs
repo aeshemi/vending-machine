@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using VendingMachine.Models;
 using VendingMachine.Models.Enums;
@@ -63,6 +64,8 @@ namespace VendingMachine.Services
 				coinRepository.Update(coinDetail);
 				change.Add(new Coin(coin.CoinType, quantity, coin.Description));
 			}
+
+			if (amount > 0) throw new ArgumentException("Insufficient change");
 
 			return change;
 		}
